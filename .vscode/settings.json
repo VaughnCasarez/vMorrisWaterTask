@@ -51,5 +51,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "vMorrisWaterTask.sln"
+    "dotnet.defaultSolution": "vMorrisWaterTask.slnx"
 }

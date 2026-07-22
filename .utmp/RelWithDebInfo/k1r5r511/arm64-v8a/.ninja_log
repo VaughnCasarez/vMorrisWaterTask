@@ -1,0 +1,12 @@
+# ninja log v5
+195	1169	8064545758644445	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	9387f3bd6e4f1ebe
+1233	1971	8064545766313586	C:/Users/coolc/Documents/GitHub/vMorrisWaterTask/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/k1r5r511/obj/arm64-v8a/libswappywrapper.so	6c76ce2e6ea6d73d
+53	3222	8064545780045903	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	351637ae9036a25
+106	3240	8064545780262170	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	c853eecaa0a91e5d
+16	3284	8064545780750666	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	85790e92bcd3db9a
+178	3325	8064545781138806	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	e0fbe7822c0d8f64
+32	3402	8064545781937836	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	eabb3ac70b23d460
+127	3670	8064545784517266	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	41f3c221c4188294
+67	3696	8064545784881166	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	e659eeb1b263fa88
+2	3887	8064545786768630	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	ca5c51df6496430f
+3887	4024	8064545788177629	C:/Users/coolc/Documents/GitHub/vMorrisWaterTask/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/k1r5r511/obj/arm64-v8a/libgame.so	ce0a593965b55833

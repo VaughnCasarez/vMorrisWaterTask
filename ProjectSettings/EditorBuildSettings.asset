@@ -8,13 +8,16 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/MainMenu.unity
     guid: 5f7983d095c704d7f97f8d43955de887
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/ExperimentSetupScene.unity
     guid: c5bc561233a204348a3dc19488eadd53
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/TrialEditorScene.unity
     guid: a1db909f5cde14f1bac475d902301b1f
   - enabled: 1
     path: Assets/Scenes/TrialScene.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
-  m_configObjects: {}
+  m_configObjects:
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 7c6042c666593c64a9fd5d20203751f8, type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 0ec9b31a51a161f458f448a46a671dc4, type: 2}
+  m_UseUCBPForAssetBundles: 0

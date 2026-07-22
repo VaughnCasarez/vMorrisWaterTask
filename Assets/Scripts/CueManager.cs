@@ -24,6 +24,24 @@ public class CueManager : MonoBehaviour
     /// <param name="numberOfCues">Number of cues to activate and position.</param>
     public void UpdateCues(int numberOfCues)
     {
+        if (allCues == null || allCues.Length == 0)
+        {
+            Debug.LogWarning("CueManager has no cues assigned.", this);
+            return;
+        }
+
+        if (GameSettings.allTrials == null || GameSettings.allTrials.Length == 0)
+        {
+            Debug.LogWarning("GameSettings.allTrials is not initialized.", this);
+            return;
+        }
+
+        if (GameManager.CurrentTrialIndex < 0 || GameManager.CurrentTrialIndex >= GameSettings.allTrials.Length)
+        {
+            Debug.LogWarning($"Current trial index {GameManager.CurrentTrialIndex} is out of range.", this);
+            return;
+        }
+
         TrialDefinition td = GameSettings.allTrials[GameManager.CurrentTrialIndex];
         bool[] selectedCues = td.cueSelections;
 
@@ -56,6 +74,11 @@ public class CueManager : MonoBehaviour
         // Step 3: Activate and position only the final selected cues
         for (int i = 0; i < allCues.Length; i++)
         {
+            if (allCues[i] == null)
+            {
+                continue;
+            }
+
             if (finalCueIndices.Contains(i))
             {
                 int cueIndexInList = finalCueIndices.IndexOf(i);
