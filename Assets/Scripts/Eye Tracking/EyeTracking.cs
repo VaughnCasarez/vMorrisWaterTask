@@ -88,6 +88,7 @@ public class EyeTracking : Tracker
     private bool attemptedEyeGazePoseActionSetup;
     private bool attemptedMetaEyeTrackingStart;
     private bool requestedMetaEyeTrackingPermission;
+    private float nextProviderRefreshTime;
     private EyeSample latestDebugSample;
     private GameObject debugCursorObject;
     private Renderer debugCursorRenderer;
@@ -175,6 +176,7 @@ public class EyeTracking : Tracker
 
         EyeSample sample = CaptureEyeSample();
         PrepareSampleForOutput(ref sample);
+        RefreshEyeTrackingProvidersIfNeeded(sample);
         latestDebugSample = sample;
         latestDiagnosticStatus = BuildDiagnosticStatus(sample);
         UpdateDebugScreenDot(sample);
@@ -233,6 +235,7 @@ public class EyeTracking : Tracker
     {
         EyeSample sample = CaptureEyeSample();
         PrepareSampleForOutput(ref sample);
+        RefreshEyeTrackingProvidersIfNeeded(sample);
         latestDebugSample = sample;
         latestDiagnosticStatus = BuildDiagnosticStatus(sample);
         UpdateDebugScreenDot(sample);
@@ -1008,6 +1011,32 @@ public class EyeTracking : Tracker
         action.Disable();
         action.Dispose();
         action = null;
+    }
+
+    private void RefreshEyeTrackingProvidersIfNeeded(EyeSample sample)
+    {
+        if (sample.trackingProvider != "Unavailable")
+        {
+            return;
+        }
+
+        if (Time.unscaledTime < nextProviderRefreshTime)
+        {
+            return;
+        }
+
+        nextProviderRefreshTime = Time.unscaledTime + 1f;
+        attemptedMetaEyeTrackingStart = false;
+        attemptedEyeGazePoseActionSetup = false;
+
+        DisposeInputAction(ref eyeGazePoseAction);
+        DisposeInputAction(ref openXrEyeTrackingPoseAction);
+        DisposeInputAction(ref openXrEyeTrackingIsTrackedAction);
+        DisposeInputAction(ref openXrEyeTrackingPositionAction);
+        DisposeInputAction(ref openXrEyeTrackingRotationAction);
+
+        EnsureMetaEyeTrackingPermission();
+        EnsureEyeGazePoseAction();
     }
 
     private void PopulateCombinedPoseIntoSample(ref EyeSample sample, Vector3 position, bool hasPosition, Vector3 direction, bool hasDirection)
