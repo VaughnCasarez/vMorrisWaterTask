@@ -16,10 +16,11 @@ public class ExperimentSetupController : MonoBehaviour
 
     [Header("Run Participant UI (shown only when Run is selected)")]
     public TMP_InputField participantIdInput;  // Participant ID (Run only)
-    public TMP_Dropdown savedFilesDropdown;    // List *.json from persistentDataPath
+    public TMP_Dropdown savedFilesDropdown;    // List *.json from StreamingAssets/ExperimentSettings
 
     [Header("Buttons")]
     public Button nextButton;
+    public Button deleteButton;
     public TMP_Text nextButtonLabel;   // <- assign the label (child TMP_Text of the button)
 
     [Header("Exit Button")]
@@ -43,6 +44,7 @@ public class ExperimentSetupController : MonoBehaviour
         if (nextButton != null) nextButton.onClick.AddListener(OnClickNext);
 
         PopulateSavedFilesDropdown();
+        SetupDeleteButton();
         UpdatePanels();
         SetupQuitButton();
     }
@@ -61,6 +63,8 @@ public class ExperimentSetupController : MonoBehaviour
             participantIdInput.transform.parent.gameObject.SetActive(showRun);
         if (savedFilesDropdown != null)
             savedFilesDropdown.transform.parent.gameObject.SetActive(showRun);
+        if (deleteButton != null)
+            deleteButton.gameObject.SetActive(showRun);
 
         // Update button label
         if (nextButtonLabel != null)
@@ -73,13 +77,64 @@ public class ExperimentSetupController : MonoBehaviour
         if (savedFilesDropdown == null) return;
 
         savedFilesDropdown.ClearOptions();
-        var files = Directory.GetFiles(Application.persistentDataPath, "*.json");
+        var files = ExperimentSettingsStorage.GetFiles();
         var options = new List<string>();
         foreach (var f in files) options.Add(Path.GetFileName(f));
         if (options.Count == 0) options.Add("(no saved experiments found)");
         savedFilesDropdown.AddOptions(options);
         savedFilesDropdown.value = 0;
         savedFilesDropdown.RefreshShownValue();
+    }
+
+    void SetupDeleteButton()
+    {
+        if (deleteButton == null && nextButton != null)
+        {
+            GameObject deleteButtonObject = Instantiate(nextButton.gameObject, nextButton.transform.parent);
+            deleteButtonObject.name = "DeleteSettingsButton";
+            deleteButton = deleteButtonObject.GetComponent<Button>();
+
+            RectTransform nextRect = nextButton.GetComponent<RectTransform>();
+            RectTransform deleteRect = deleteButtonObject.GetComponent<RectTransform>();
+            deleteRect.anchoredPosition = nextRect.anchoredPosition + Vector2.right * (nextRect.rect.width + 8f);
+
+            TMP_Text label = deleteButtonObject.GetComponentInChildren<TMP_Text>(true);
+            if (label != null) label.text = "Delete";
+        }
+
+        if (deleteButton != null)
+        {
+            deleteButton.onClick.RemoveListener(DeleteSelectedSettings);
+            deleteButton.onClick.AddListener(DeleteSelectedSettings);
+        }
+    }
+
+    public void DeleteSelectedSettings()
+    {
+        if (savedFilesDropdown == null || savedFilesDropdown.options.Count == 0)
+        {
+            Debug.LogWarning("No saved settings selected.");
+            return;
+        }
+
+        string selectedFile = savedFilesDropdown.options[savedFilesDropdown.value].text;
+        if (string.IsNullOrEmpty(selectedFile) || selectedFile.StartsWith("("))
+        {
+            Debug.LogWarning("No saved settings selected.");
+            return;
+        }
+
+        string path = ExperimentSettingsStorage.GetFilePath(selectedFile);
+        if (!File.Exists(path))
+        {
+            Debug.LogWarning("Saved settings file not found: " + path);
+            PopulateSavedFilesDropdown();
+            return;
+        }
+
+        ExperimentSettingsStorage.DeleteFile(selectedFile);
+        PopulateSavedFilesDropdown();
+        Debug.Log("Deleted settings: " + selectedFile);
     }
 
     public void OnClickNext()
@@ -130,7 +185,7 @@ public class ExperimentSetupController : MonoBehaviour
                 return;
             }
 
-            string path = Path.Combine(Application.persistentDataPath, chosen);
+            string path = ExperimentSettingsStorage.GetFilePath(chosen);
             if (!File.Exists(path))
             {
                 Debug.LogWarning("Saved experiment file not found: " + path);

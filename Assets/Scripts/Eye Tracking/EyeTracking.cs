@@ -12,8 +12,14 @@ using UnityEngine.XR;
 using UnityEngine.XR.OpenXR;
 using XRInputDevice = UnityEngine.XR.InputDevice;
 
+/// <summary>
+/// Collects eye tracking data from multiple providers (Vive, Meta OVR, OpenXR, Input System),
+/// writes samples into UXF rows, and optionally mirrors samples to a standalone CSV file.
+/// </summary>
 public class EyeTracking : Tracker
 {
+    #region Constants
+
     private const string MetaEyeTrackingPermission = "com.oculus.permission.EYE_TRACKING";
 
     public override string MeasurementDescriptor => "eye_tracking";
@@ -76,10 +82,16 @@ public class EyeTracking : Tracker
     private readonly List<XRInputDevice> eyeTrackingDevices = new List<XRInputDevice>();
     private const int LeftEyeIndex = 0;
     private const int RightEyeIndex = 1;
+
+    #endregion
+
+    #region Runtime State
+
     private StreamWriter standaloneWriter;
     private float nextStandaloneSampleTime;
     private string standaloneLogPath;
-    private Type viveInteropType;
+    private object viveInteropInstance;
+    private bool viveInteropLookupAttempted;
     private InputAction eyeGazePoseAction;
     private InputAction openXrEyeTrackingPoseAction;
     private InputAction openXrEyeTrackingIsTrackedAction;
@@ -95,9 +107,15 @@ public class EyeTracking : Tracker
     private Material debugCursorMaterial;
     private bool hasRegisteredWithSession;
     private string latestDiagnosticStatus = string.Empty;
+    private string lastLoggedTrackingProvider;
     private bool debugScreenDotVisible;
     private Vector2 debugScreenDotPosition;
 
+    #endregion
+
+    /// <summary>
+    /// Snapshot of one eye-tracking sample with validity flags for each signal.
+    /// </summary>
     private struct EyeSample
     {
         public Vector3 leftOrigin;
@@ -151,6 +169,8 @@ public class EyeTracking : Tracker
 
     private static Vector3 NaNVector => new Vector3(float.NaN, float.NaN, float.NaN);
 
+    #region Unity Lifecycle
+
     private void Awake()
     {
         TryRegisterWithSession();
@@ -179,6 +199,7 @@ public class EyeTracking : Tracker
         RefreshEyeTrackingProvidersIfNeeded(sample);
         latestDebugSample = sample;
         latestDiagnosticStatus = BuildDiagnosticStatus(sample);
+        LogTrackingProviderTransition(sample);
         UpdateDebugScreenDot(sample);
 
         if (shouldUpdateDebugCursor)
@@ -216,6 +237,10 @@ public class EyeTracking : Tracker
         CloseStandaloneWriter();
     }
 
+    #endregion
+
+    #region UXF Integration
+
     private void OnGUI()
     {
         if (!showDebugStatusLabel)
@@ -238,6 +263,7 @@ public class EyeTracking : Tracker
         RefreshEyeTrackingProvidersIfNeeded(sample);
         latestDebugSample = sample;
         latestDiagnosticStatus = BuildDiagnosticStatus(sample);
+        LogTrackingProviderTransition(sample);
         UpdateDebugScreenDot(sample);
 
         if (showDebugGazeCursor)
@@ -255,6 +281,9 @@ public class EyeTracking : Tracker
         return row;
     }
 
+    /// <summary>
+    /// Adds this tracker to the active UXF session if not already registered.
+    /// </summary>
     public void RegisterSelf()
     {
         if (Session.instance != null && !Session.instance.trackedObjects.Contains(this))
@@ -278,6 +307,10 @@ public class EyeTracking : Tracker
 
         RegisterSelf();
     }
+
+    #endregion
+
+    #region Sampling Pipeline
 
     private UXFDataRow CreateDataRow(EyeSample sample)
     {
@@ -331,6 +364,10 @@ public class EyeTracking : Tracker
         PopulateFocusData(ref sample);
         return sample;
     }
+
+    #endregion
+
+    #region Provider Capture
 
     private bool TryCaptureViveSample(ref EyeSample sample)
     {
@@ -401,45 +438,65 @@ public class EyeTracking : Tracker
         {
             return false;
         }
+
+        #endregion
+
+        #region Reflection Helpers
     }
 
     private bool TryInvokeViveInteropArray(string methodName, out Array resultArray)
     {
         resultArray = null;
 
-        Type interopType = GetViveInteropType();
-        if (interopType == null)
+        object interop = GetViveInteropInstance();
+        if (interop == null)
         {
             return false;
         }
 
-        MethodInfo method = interopType.GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = interop.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         if (method == null)
         {
             return false;
         }
 
         object[] arguments = { null };
-        method.Invoke(null, arguments);
+        method.Invoke(interop, arguments);
         resultArray = arguments[0] as Array;
         return resultArray != null;
     }
 
-    private Type GetViveInteropType()
+    // VIVE.OpenXR.XR_HTC_eye_tracker exposes a static "Interop" *property* returning a live instance;
+    // GetEyeGazeData/GetEyePupilData/GetEyeGeometricData are instance methods on that object, not static nested-type members.
+    private object GetViveInteropInstance()
     {
-        if (viveInteropType != null)
+        if (viveInteropInstance != null || viveInteropLookupAttempted)
         {
-            return viveInteropType;
+            return viveInteropInstance;
         }
+
+        viveInteropLookupAttempted = true;
 
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
-            viveInteropType = assembly.GetType("VIVE.OpenXR.EyeTracker.XR_HTC_eye_tracker+Interop", false)
-                ?? assembly.GetType("XR_HTC_eye_tracker+Interop", false);
+            Type interopHolderType = assembly.GetType("VIVE.OpenXR.XR_HTC_eye_tracker", false)
+                ?? assembly.GetType("VIVE.OpenXR.EyeTracker.XR_HTC_eye_tracker", false);
 
-            if (viveInteropType != null)
+            if (interopHolderType == null)
             {
-                return viveInteropType;
+                continue;
+            }
+
+            PropertyInfo interopProperty = interopHolderType.GetProperty("Interop", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+            if (interopProperty == null)
+            {
+                continue;
+            }
+
+            viveInteropInstance = interopProperty.GetValue(null);
+            if (viveInteropInstance != null)
+            {
+                return viveInteropInstance;
             }
         }
 
@@ -544,20 +601,52 @@ public class EyeTracking : Tracker
     private static bool TryInvokeConversionMethod<T>(object source, string methodName, out T result)
     {
         result = default;
-        MethodInfo method = source.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
-        if (method == null)
+        Type sourceType = source.GetType();
+
+        MethodInfo instanceMethod = sourceType.GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
+        if (instanceMethod != null && instanceMethod.Invoke(source, null) is T convertedByInstance)
         {
-            return false;
+            result = convertedByInstance;
+            return true;
         }
 
-        object value = method.Invoke(source, null);
-        if (value is T converted)
+        // VIVE.OpenXR's ToUnityVector/ToUnityQuaternion are extension methods (static, "this XrVector3f"/"this XrQuaternionf"),
+        // not instance members, and they apply the required OpenXR (right-handed) -> Unity (left-handed) axis flip.
+        MethodInfo extensionMethod = FindViveOpenXrHelperMethod(methodName, sourceType, typeof(T));
+        if (extensionMethod != null && extensionMethod.Invoke(null, new[] { source }) is T convertedByExtension)
         {
-            result = converted;
+            result = convertedByExtension;
             return true;
         }
 
         return false;
+    }
+
+    private static Type viveOpenXrHelperType;
+    private static bool viveOpenXrHelperLookupAttempted;
+
+    private static MethodInfo FindViveOpenXrHelperMethod(string methodName, Type parameterType, Type returnType)
+    {
+        if (!viveOpenXrHelperLookupAttempted)
+        {
+            viveOpenXrHelperLookupAttempted = true;
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                viveOpenXrHelperType = assembly.GetType("VIVE.OpenXR.OpenXRHelper", false);
+                if (viveOpenXrHelperType != null)
+                {
+                    break;
+                }
+            }
+        }
+
+        if (viveOpenXrHelperType == null)
+        {
+            return null;
+        }
+
+        MethodInfo method = viveOpenXrHelperType.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static, null, new[] { parameterType }, null);
+        return method != null && method.ReturnType == returnType ? method : null;
     }
 
     private static bool TryGetBoolMember(object source, string memberName, out bool value)
@@ -572,6 +661,23 @@ public class EyeTracking : Tracker
         {
             value = boolValue;
             return true;
+        }
+
+        // OpenXR interop wrappers (e.g. VIVE's XrBool32) aren't a real System.Boolean - they only expose an implicit conversion operator.
+        Type rawValueType = rawValue.GetType();
+        foreach (MethodInfo candidate in rawValueType.GetMethods(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (candidate.Name != "op_Implicit" || candidate.ReturnType != typeof(bool))
+            {
+                continue;
+            }
+
+            ParameterInfo[] parameters = candidate.GetParameters();
+            if (parameters.Length == 1 && parameters[0].ParameterType == rawValueType)
+            {
+                value = (bool)candidate.Invoke(null, new[] { rawValue });
+                return true;
+            }
         }
 
         return false;
@@ -626,6 +732,10 @@ public class EyeTracking : Tracker
 
         return false;
     }
+
+    #endregion
+
+    #region OpenXR And Input System Fallbacks
 
     private bool TryCaptureOpenXrSample(ref EyeSample sample)
     {
@@ -965,6 +1075,10 @@ public class EyeTracking : Tracker
         return float.IsNaN(value.x) || float.IsNaN(value.y) || float.IsNaN(value.z) || float.IsNaN(value.w);
     }
 
+    #endregion
+
+    #region Input Action Setup
+
     private void EnsureEyeGazePoseAction()
     {
         if (attemptedEyeGazePoseActionSetup)
@@ -1012,6 +1126,10 @@ public class EyeTracking : Tracker
         action.Dispose();
         action = null;
     }
+
+    #endregion
+
+    #region Provider Refresh And Sample Normalization
 
     private void RefreshEyeTrackingProvidersIfNeeded(EyeSample sample)
     {
@@ -1095,6 +1213,10 @@ public class EyeTracking : Tracker
             }
         }
     }
+
+    #endregion
+
+    #region Debug Visualization
 
     private void UpdateDebugScreenDot(EyeSample sample)
     {
@@ -1221,7 +1343,7 @@ public class EyeTracking : Tracker
 #endif
         }
 
-        status.Append(" | Vive interop: ").Append(GetViveInteropType() != null ? "found" : "missing");
+        status.Append(" | Vive interop: ").Append(GetViveInteropInstance() != null ? "found" : "missing");
         Type ovrPluginType = GetOvrPluginType();
         if (ovrPluginType != null)
         {
@@ -1240,6 +1362,26 @@ public class EyeTracking : Tracker
 
         status.Append(" | Sample provider: ").Append(sample.trackingProvider);
         return status.ToString();
+    }
+
+    // Logs provider transitions to the player log so a failed run can be diagnosed after the fact (e.g. via adb logcat), without needing to read the in-headset HUD live.
+    private void LogTrackingProviderTransition(EyeSample sample)
+    {
+        if (sample.trackingProvider == lastLoggedTrackingProvider)
+        {
+            return;
+        }
+
+        lastLoggedTrackingProvider = sample.trackingProvider;
+
+        if (sample.trackingProvider == "Unavailable")
+        {
+            Debug.LogWarning($"EyeTracking: provider became Unavailable. {latestDiagnosticStatus}", this);
+        }
+        else
+        {
+            Debug.Log($"EyeTracking: provider active -> {sample.trackingProvider}", this);
+        }
     }
 
     private bool TryGetEyeTrackingDevice(out XRInputDevice eyeTrackingDevice)
@@ -1446,6 +1588,10 @@ public class EyeTracking : Tracker
         debugCursorRenderer = null;
     }
 
+    #endregion
+
+    #region Standalone CSV Logging
+
     private bool ShouldWriteStandaloneSample()
     {
         if (!writeStandaloneCsv)
@@ -1528,8 +1674,7 @@ public class EyeTracking : Tracker
             ? gameObject.name.Replace(" ", "_").ToLowerInvariant()
             : objectName;
 
-        string directory = Path.Combine(Application.persistentDataPath, standaloneFolderName);
-        Directory.CreateDirectory(directory);
+        string directory = ResolveStandaloneOutputDirectory();
 
         standaloneLogPath = Path.Combine(
             directory,
@@ -1546,6 +1691,17 @@ public class EyeTracking : Tracker
 
         standaloneWriter.WriteLine("time," + string.Join(",", CustomHeader));
         Debug.Log($"Writing standalone eye tracking samples to: {standaloneLogPath}", this);
+    }
+
+    private string ResolveStandaloneOutputDirectory()
+    {
+        string downloadsDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Downloads",
+            "Water_Morris_Eye_Tracking_Data");
+
+        Directory.CreateDirectory(downloadsDirectory);
+        return downloadsDirectory;
     }
 
     private void CloseStandaloneWriter()
@@ -1577,4 +1733,6 @@ public class EyeTracking : Tracker
 
         return string.Format(CultureInfo.InvariantCulture, "\"{0}\"", safeValue.Replace("\"", "\"\""));
     }
+
+    #endregion
 }

@@ -481,7 +481,8 @@ public class TrialEditorController : MonoBehaviour
             ? $"exp_"
             : customName;
 
-        string path = Path.Combine(Application.persistentDataPath, baseName + ".json");
+        ExperimentSettingsStorage.EnsureDirectoryExists();
+        string path = ExperimentSettingsStorage.GetFilePath(baseName + ".json");
 
         File.WriteAllText(path, JsonUtility.ToJson(data, true));
         Debug.Log("Settings saved to: " + path);
@@ -489,7 +490,6 @@ public class TrialEditorController : MonoBehaviour
         ShowStatusText($"Saved settings as: {Path.GetFileName(path)}");
         PopulateSavedFilesDropdown();
     }
-
 
     void ShowStatusText(string message)
     {
@@ -512,7 +512,7 @@ public class TrialEditorController : MonoBehaviour
     {
         if (savedFilesDropdown == null) return;
 
-        string[] files = Directory.GetFiles(Application.persistentDataPath, "*.json");
+        string[] files = ExperimentSettingsStorage.GetFiles();
         savedFilesDropdown.ClearOptions();
         List<string> options = new List<string>();
 
@@ -529,7 +529,7 @@ public class TrialEditorController : MonoBehaviour
         if (savedFilesDropdown == null || savedFilesDropdown.options.Count == 0) return;
 
         string selectedFile = savedFilesDropdown.options[savedFilesDropdown.value].text;
-        string path = Path.Combine(Application.persistentDataPath, selectedFile);
+        string path = ExperimentSettingsStorage.GetFilePath(selectedFile);
 
         if (!File.Exists(path)) return;
 

@@ -1,0 +1,39 @@
+{
+    "participantID": 0,
+    "numberOfTrials": 1,
+    "enableDistalCues": true,
+    "allTrials": [
+        {
+            "cueSelections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "circleRadius": 20.0,
+            "numberOfProximalCues": 4,
+            "numberOfQuadrants": 4,
+            "trialType": 0,
+            "timeLimit": -999,
+            "startingLocationOption": 1,
+            "customStartingPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "cuePlacementOption": 0,
+            "customCuePositions": [],
+            "cueDistanceFromEdge": 2.0,
+            "chestPlacementOption": 0,
+            "customTreasureChestPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        }
+    ]
+}
