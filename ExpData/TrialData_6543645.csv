@@ -1,0 +1,2 @@
+trialNumber,totalDistance,startToEndDistance,totalTimeTaken,averageDistanceToChest,numberOfQuadrants,chestQuadrant,timeQ1,timeQ2,timeQ3,timeQ4,proportionInChestQuadrant,fractalDimensionBox,straightnessIndex,tortuosityRadPerMeter,angularEntropyBits,angularEntropyBits_norm,crossings
+1,15.82078,15.7563,5.094794,12.5315,4,4,0.000,0.000,4.843,0.252,0.0494,1.0000,0.9959,0.0185,0.3298,0.0791,0
