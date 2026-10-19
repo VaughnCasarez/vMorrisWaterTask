@@ -3333,6 +3333,105 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+--- !u!1 &730819996 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+  m_PrefabInstance: {fileID: 1202464567}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &730819997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730819996}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96b96031d07614e97a701a79e44d384b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 730819996}
+  positionFileNameBase: PositionData_trial
+  distanceFileNameBase: DistanceData_trial
+  enableTotalDistance: 1
+  enableCoordinates: 1
+  enableSpeed: 1
+  treasureChestManager: {fileID: 0}
+  traceImageSize: 1024
+  tracePaddingPx: 24
+  traceJpgQuality: 90
+  fractalMaxGrid: 256
+  fractalResampleStep: 0
+--- !u!114 &730819998
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730819996}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44b084fcc736347ff966d6e35c61212a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  treasureChestManager: {fileID: 730819999}
+  dataCollector: {fileID: 730819997}
+  playerController: {fileID: 730820000}
+  cueManager: {fileID: 493210102}
+  distalCueManager: {fileID: 940835435}
+  timeUpPanel: {fileID: 1263808767}
+  instructionText: {fileID: 1095688475}
+  timeUpDisplaySeconds: 10
+  experimentCompletePanel: {fileID: 355825578}
+  quitButton: {fileID: 168498943}
+  audioSource: {fileID: 680427458}
+  treasureJingle: {fileID: 8300000, guid: dae93e69e10bd4133925bb15f5120693, type: 3}
+  coinPrefab: {fileID: 5387133922393327790, guid: cb89ed0a18d854066ad589c9eed081d8, type: 3}
+  countdownCircle: {fileID: 2081091757}
+  lightBeamPrefab: {fileID: 5737072570896268593, guid: 22b098a597ee5403e80bf91b04d0c0a7, type: 3}
+  screenFadeImage: {fileID: 1696270395}
+  numberOfCoins: 20
+  spawnHeight: 10
+  spawnRadius: 2
+  trialEndPlatformPrefab: {fileID: 648101165}
+  trialEndLight: {fileID: 1751385518}
+  trialEndDuration: 10
+  elevationOffset: 1
+  platformSafeRadius: 10
+--- !u!114 &730819999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730819996}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9579dcb4eaebf4a1c8431c5195274e45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  treasureChestPrefab: {fileID: 5152306413126512219, guid: c49810916b820403583ce214b8b23800, type: 3}
+  chestDetectionDistance: 2
+  playerController: {fileID: 730820000}
+  chestMarkerPrefab: {fileID: 108135545}
+--- !u!114 &730820000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730819996}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cdc7b82fc1654f6ebcfec39977edff7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 5
+  turnSpeed: 100
+  gravity: -9.81
+  enforceArenaBounds: 1
+  arenaCenter: {fileID: 0}
+  boundaryBuffer: 0.25
 --- !u!4 &748153835 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: e3cee4cf81c78b34990c1f670c4bd190, type: 3}
@@ -5195,6 +5294,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: XR Origin (XR Rig)
       objectReference: {fileID: 0}
+    - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -5295,6 +5398,18 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 730820000}
+    - targetCorrespondingSourceObject: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 730819999}
+    - targetCorrespondingSourceObject: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 730819998}
+    - targetCorrespondingSourceObject: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 730819997}
     - targetCorrespondingSourceObject: {fileID: 1767192433, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1202464569}
