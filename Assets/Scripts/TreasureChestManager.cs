@@ -16,6 +16,7 @@ public class TreasureChestManager : MonoBehaviour
     // Private variables
     private Vector3 chestPosition;                 // Position where the chest will appear
     private bool chestFound = false;               // Flag to check if the chest has been found
+    private bool positionInitialized = false;      // True once Start() has picked the chest position
 
     public event Action OnChestFound;
 
@@ -43,6 +44,7 @@ public class TreasureChestManager : MonoBehaviour
             chestPosition += new Vector3(2, 0, 0);
         }
 
+        positionInitialized = true;
         SpawnChestPosition();
     }
 
@@ -114,6 +116,13 @@ public class TreasureChestManager : MonoBehaviour
     public void ResetChest()
     {
         chestFound = false;
+
+        // GameManager.Start() can call this before our Start() has picked a position;
+        // spawning now would place a stray marker at (0,0,0) and Start() would then spawn a second one.
+        if (!positionInitialized)
+        {
+            return;
+        }
 
         // Destroy existing chest and marker instances to prevent duplicates
         if (treasureChestInstance != null)
