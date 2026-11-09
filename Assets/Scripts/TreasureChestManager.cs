@@ -24,6 +24,22 @@ public class TreasureChestManager : MonoBehaviour
     private GameObject chestMarkerInstance;
     private GameObject treasureChestInstance;
 
+    [Header("Arena")]
+    public Vector3 arenaCenter = Vector3.zero;     // Center of the grass circle
+    public float edgeMargin = 3f;                  // Keep the chest this far inside the circle edge
+
+    float MaxChestRadius
+    {
+        get { return Mathf.Max(0f, GameSettings.circleRadius - edgeMargin); }
+    }
+
+    Vector3 ClampToArena(Vector3 pos)
+    {
+        Vector3 offset = new Vector3(pos.x - arenaCenter.x, 0, pos.z - arenaCenter.z);
+        offset = Vector3.ClampMagnitude(offset, MaxChestRadius);
+        return new Vector3(arenaCenter.x + offset.x, 0, arenaCenter.z + offset.z);
+    }
+
     public Vector3 ChestPosition
     {
         get { return chestPosition; }
@@ -32,16 +48,14 @@ public class TreasureChestManager : MonoBehaviour
 
     void Start()
     {
-        // Generate a random direction within a circle on the horizontal plane
-        Vector2 randomDirection = UnityEngine.Random.insideUnitCircle * (GameSettings.circleRadius - 2);
-        Vector3 spawnPosition = new Vector3(randomDirection.x, 0, randomDirection.y) + playerController.transform.position;
+        // Centered on the arena (not the player, who may already have been moved to a random start)
+        Vector2 randomDirection = UnityEngine.Random.insideUnitCircle * MaxChestRadius;
+        chestPosition = new Vector3(randomDirection.x, 0, randomDirection.y) + arenaCenter;
 
-        chestPosition = new Vector3(spawnPosition.x, 0, spawnPosition.z);
-
-        // make sure the chest is not too close to the player
+        // make sure the chest is not too close to the player, without leaving the circle
         if (Vector3.Distance(chestPosition, playerController.transform.position) < 2f)
         {
-            chestPosition += new Vector3(2, 0, 0);
+            chestPosition = ClampToArena(chestPosition + new Vector3(2, 0, 0));
         }
 
         positionInitialized = true;
@@ -123,6 +137,9 @@ public class TreasureChestManager : MonoBehaviour
         {
             return;
         }
+
+        // Trial radius may have changed since the chest was placed
+        chestPosition = ClampToArena(chestPosition);
 
         // Destroy existing chest and marker instances to prevent duplicates
         if (treasureChestInstance != null)

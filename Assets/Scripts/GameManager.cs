@@ -24,6 +24,13 @@ public class GameManager : MonoBehaviour
     public GameObject experimentCompletePanel;
     public Button quitButton;
 
+    [Header("VR Notifications")]
+    [Tooltip("Scene object with a VRNotification component. If empty, a default one is created at runtime.")]
+    public VRNotification treasureFoundNotification;
+    [Tooltip("Message shown instead of the notification's own message after the final trial. Leave empty to use it as-is.")]
+    public string finalTrialTreasureMessage = "That was the final trial.";
+    public VRNotification experimentCompleteNotification;
+
     [Header("Audio")]
     public AudioSource audioSource;
     public AudioClip treasureJingle;
@@ -48,8 +55,6 @@ public class GameManager : MonoBehaviour
     private float trialTimer = 0f;
     private TrialDefinition currentTrialDefinition;
 
-    public GameObject trialEndPlatformPrefab; // A small platform prefab with a collider.
-    public Light trialEndLight;               // A light that indicates success (initially disabled).
     public float trialEndDuration = 10f;      // Duration to stay in the trial-end sequence.
     public float elevationOffset = 1f;      // How much to raise the player (in Unity units).
     public float platformSafeRadius = 10.0f;   // The safe radius on the platform where the player can roam.
@@ -126,6 +131,14 @@ public class GameManager : MonoBehaviour
             if (experimentCompletePanel != null)
                 experimentCompletePanel.SetActive(true);
 
+            ShowNotification(
+                ref experimentCompleteNotification,
+                "Experiment Complete",
+                "Thank you for participating! You may now remove the headset.",
+                0f,
+                new Color(0.35f, 0.85f, 0.5f),
+                null);
+
             // Optionally freeze player
             playerController.FreezePlayer();
 
@@ -200,6 +213,28 @@ public class GameManager : MonoBehaviour
             }
         }
     }
+    void ShowNotification(ref VRNotification notification, string defaultTitle, string defaultMessage,
+        float defaultDuration, Color defaultAccent, string messageOverride)
+    {
+        // Fall back to a runtime-built default when none is assigned in the scene
+        if (notification == null)
+        {
+            var go = new GameObject(defaultTitle + " Notification");
+            notification = go.AddComponent<VRNotification>();
+            notification.BuildUI();
+            notification.title = defaultTitle;
+            notification.message = defaultMessage;
+            notification.displayDuration = defaultDuration;
+            notification.accentColor = defaultAccent;
+            notification.titleColor = defaultAccent;
+        }
+
+        if (string.IsNullOrEmpty(messageOverride))
+            notification.Show();
+        else
+            notification.Show(notification.title, messageOverride);
+    }
+
     void OnChestFound()
     {
         if (!trialInProgress)
@@ -222,6 +257,15 @@ public class GameManager : MonoBehaviour
 
         SpawnCoinEffect();
         SpawnLightBeamEffect();
+
+        bool lastTrial = currentTrial >= GameSettings.numberOfTrials;
+        ShowNotification(
+            ref treasureFoundNotification,
+            "Treasure Found!",
+            "Great job! Look around while you wait for the next trial.",
+            4f,
+            new Color(1f, 0.82f, 0.2f),
+            lastTrial ? finalTrialTreasureMessage : null);
 
         StartCoroutine(TrialEndSequence());
     }
@@ -259,14 +303,8 @@ public class GameManager : MonoBehaviour
         bool isLastTrial = currentTrial >= GameSettings.numberOfTrials;
         Vector3 playerPosition = playerController.transform.position;
 
-        Vector3 platformPosition = new Vector3(playerPosition.x, playerPosition.y - elevationOffset, playerPosition.z);
-        GameObject platformInstance = Instantiate(trialEndPlatformPrefab, platformPosition, Quaternion.identity);
-
         playerController.transform.position = new Vector3(playerPosition.x, playerPosition.y + elevationOffset, playerPosition.z);
         Vector3 fixedPosition = playerController.transform.position;
-
-        trialEndLight.transform.position = new Vector3(playerPosition.x, trialEndLight.transform.position.y, playerPosition.z);
-        trialEndLight.gameObject.SetActive(true);
 
         if (instructionText != null)
         {
@@ -327,11 +365,6 @@ public class GameManager : MonoBehaviour
 
         if (countdownCircle != null)
             countdownCircle.gameObject.SetActive(false);
-
-        trialEndLight.gameObject.SetActive(false);
-        Destroy(platformInstance);
-
-
 
         // Exports already performed at chest hit
 

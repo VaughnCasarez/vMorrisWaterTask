@@ -41,7 +41,7 @@ public class PlaceObjectsInCircle : MonoBehaviour
             if (stone.GetComponent<Collider>() == null)
             {
                 BoxCollider collider = stone.AddComponent<BoxCollider>();  // Adding a BoxCollider if it doesn't already exist
-                collider.size = new Vector3(1.5f, 5f, 1.5f);
+                collider.size = new Vector3(1.5f, 0.1f, 1.5f);
             }
         }
     }
